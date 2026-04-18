@@ -1,0 +1,3 @@
+[submodule "lib/uvm_unit"]
+	path = lib/uvm_unit
+	url = https://github.com/cquickstad/uvm_unit.git
