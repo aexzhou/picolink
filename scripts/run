@@ -1,0 +1,149 @@
+#!/usr/bin/env python3
+"""Run the PicoLink unit tests under Verilator.
+
+Layout assumptions (relative to the project root):
+  src/                        PicoLink UVC sources
+  tests/                      unit test files (test_*.sv)
+  lib/uvm_unit/               uvm_unit framework (git submodule)
+  ../UVM/1.2/src/             UVM 1.2 library sources (user-provided)
+
+Note: uvm_unit officially requires its bundled, modified UVM at
+lib/uvm_unit/uvm_unit-uvm-1.2/src. This script uses ../UVM/1.2/src
+per the current project setup; swap UVM_SRC below if you hit issues.
+"""
+
+from __future__ import annotations
+
+import argparse
+import shutil
+import subprocess
+import sys
+from pathlib import Path
+
+
+ROOT = Path(__file__).resolve().parent.parent
+UVM_SRC_EXTERNAL = (ROOT / ".." / "UVM" / "1.2" / "src").resolve()
+UVM_UNIT = ROOT / "lib" / "uvm_unit"
+UVM_UNIT_UVM_SRC = UVM_UNIT / "uvm_unit-uvm-1.2" / "src"
+
+SRC = ROOT / "src"
+TESTS = ROOT / "tests"
+BUILD = ROOT / "build"
+
+def uvm_src(use_uvm_unit_uvm: bool) -> Path:
+    return UVM_UNIT_UVM_SRC if use_uvm_unit_uvm else UVM_SRC_EXTERNAL
+
+
+def incdirs(uvm: Path) -> list[Path]:
+    return [
+        uvm,
+        UVM_UNIT,
+        SRC,
+        SRC / "interfaces",
+        SRC / "transactions",
+        SRC / "drivers",
+        SRC / "monitors",
+        SRC / "agents",
+        SRC / "sequences",
+        SRC / "scoreboards",
+    ]
+
+# Compile-order matters: interface, then package, then tests.
+RTL_FILES = [
+    SRC / "interfaces" / "picolink_l2_slave_if.sv",
+    SRC / "picolink_pkg.sv",
+]
+
+
+def discover_tests(pattern: str | None) -> list[Path]:
+    tests = sorted(TESTS.glob("test_*.sv"))
+    if pattern:
+        tests = [t for t in tests if pattern in t.stem]
+    return tests
+
+
+def build_command(test_files: list[Path], top: str, trace: bool, uvm: Path) -> list[str]:
+    cmd = [
+        "verilator",
+        "--binary",
+        "--timing",
+        "-sv",
+        "--top-module", top,
+        "-Wno-fatal",
+        "-Wno-WIDTH",
+        "-Wno-UNOPTFLAT",
+        "-Wno-STMTDLY",
+        "-Wno-SHORTREAL",
+        "+define+UVM_NO_DPI",
+        "-j", "24",
+        "-Mdir", str(BUILD),
+    ]
+    if trace:
+        cmd += ["--trace"]
+    for inc in incdirs(uvm):
+        cmd += [f"+incdir+{inc}"]
+    cmd += [str(uvm / "uvm_pkg.sv")]
+    cmd += [str(f) for f in RTL_FILES]
+    cmd += [str(f) for f in test_files]
+    return cmd
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description="Run PicoLink unit tests via Verilator.")
+    parser.add_argument("pattern", nargs="?", help="substring filter for test filenames")
+    parser.add_argument("--top", default="unit_test_run_module",
+                        help="top module name (default: unit_test_run_module)")
+    parser.add_argument("--trace", action="store_true", help="enable waveform trace")
+    parser.add_argument("--compile-only", action="store_true",
+                        help="only compile, do not execute the produced binary")
+    parser.add_argument("--clean", action="store_true", help="remove build dir before running")
+    parser.add_argument("-n", "--dry-run", action="store_true", help="print command and exit")
+    parser.add_argument("--uvm-unit-uvm", action="store_true",
+                        help=f"use the UVM bundled with uvm_unit ({UVM_UNIT_UVM_SRC}) "
+                             "instead of the external UVM tree")
+    args = parser.parse_args()
+
+    if shutil.which("verilator") is None:
+        print("error: verilator not found on PATH", file=sys.stderr)
+        return 2
+
+    uvm = uvm_src(args.uvm_unit_uvm)
+    if not uvm.is_dir():
+        print(f"error: UVM sources not found at {uvm}", file=sys.stderr)
+        return 2
+
+    if not UVM_UNIT.is_dir():
+        print(f"error: uvm_unit submodule missing at {UVM_UNIT}", file=sys.stderr)
+        print("hint: git submodule update --init", file=sys.stderr)
+        return 2
+
+    tests = discover_tests(args.pattern)
+    if not tests:
+        print("error: no test files matched", file=sys.stderr)
+        return 2
+
+    if args.clean and BUILD.exists():
+        shutil.rmtree(BUILD)
+    BUILD.mkdir(exist_ok=True)
+
+    cmd = build_command(tests, args.top, args.trace, uvm)
+    print("$ " + " ".join(cmd))
+    if args.dry_run:
+        return 0
+
+    result = subprocess.run(cmd, cwd=ROOT)
+    if result.returncode != 0:
+        return result.returncode
+    if args.compile_only:
+        return 0
+
+    binary = BUILD / f"V{args.top}"
+    if not binary.exists():
+        print(f"error: expected binary {binary} not found", file=sys.stderr)
+        return 1
+    print(f"$ {binary}")
+    return subprocess.run([str(binary)], cwd=ROOT).returncode
+
+
+if __name__ == "__main__":
+    sys.exit(main())
