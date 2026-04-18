@@ -1,0 +1,22 @@
+#!/usr/bin/env bash
+# Serve the PicoLink docs locally with live reload.
+#
+# Usage:  localdoc [extra sphinx-autobuild args]
+#
+# Requires `source env.sh` first (PROJ_ROOT + sphinx-autobuild on PATH).
+
+set -euo pipefail
+
+: "${PROJ_ROOT:?PROJ_ROOT not set — run 'source env.sh' from the repo root first}"
+
+if ! command -v sphinx-autobuild >/dev/null 2>&1; then
+    echo "sphinx-autobuild not found — re-source env.sh to install docs deps" >&2
+    exit 1
+fi
+
+exec sphinx-autobuild \
+    "$PROJ_ROOT/docs" \
+    "$PROJ_ROOT/docs/_build/html" \
+    --open-browser \
+    --ignore "$PROJ_ROOT/docs/_build/*" \
+    "$@"
