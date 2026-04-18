@@ -1,1 +1,1 @@
-# u-Link Protocol Verification IP
+# PicoLink Protocol Verification IP
