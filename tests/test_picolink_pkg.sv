@@ -8,16 +8,18 @@
 
 // Instantiate the clock, reset, and interface inside uvm_unit's run module.
 `define UNIT_TEST_RUN_MODULE_BODY                                      \
-    logic clk;                                                         \
-    logic rst_n;                                                       \
-    picolink_l2_slave_if picolink_vif(.clk(clk), .rst_n(rst_n));       \
-    initial begin clk = 0; forever #5 clk = ~clk; end
+    picolink_l2_slave_if picolink_vif();                               \
+    initial begin                                                      \
+        picolink_vif.clk = 0;                                          \
+        forever #5 picolink_vif.clk = ~picolink_vif.clk;              \
+    end
 
 `include "uvm_unit.svh"
 `include "picolink_defines.sv"
 `include "picolink_l2_slave_if.sv"
 
 import uvm_pkg::*;
+`include "uvm_macros.svh"
 import picolink_pkg::*;
 
 
@@ -77,10 +79,10 @@ class picolink_fixture extends uvm_unit_pkg::uvm_unit_fixture;
 
   // Helper: release reset.
   virtual task release_reset();
-    unit_test_run_module.rst_n = 1'b0;
-    repeat (2) @(posedge unit_test_run_module.clk);
-    unit_test_run_module.rst_n = 1'b1;
-    @(posedge unit_test_run_module.clk);
+    vif.rst_n = 1'b0;
+    repeat (2) @(posedge vif.clk);
+    vif.rst_n = 1'b1;
+    @(posedge vif.clk);
   endtask
 
   // Helper: drive one A-channel beat directly onto the interface.
@@ -88,14 +90,14 @@ class picolink_fixture extends uvm_unit_pkg::uvm_unit_fixture;
                             bit [`PICOLINK_ID_WIDTH-1:0]    src,
                             bit [`PICOLINK_TXN_ID_WIDTH-1:0] tid,
                             bit [`PICOLINK_ADDR_WIDTH-1:0]  addr);
-    @(posedge unit_test_run_module.clk);
+    @(posedge vif.clk);
     vif.a_valid  <= 1'b1;
     vif.a_opcode <= op;
     vif.a_src_id <= src;
     vif.a_txn_id <= tid;
     vif.a_addr   <= addr;
     vif.a_data   <= '0;
-    do @(posedge unit_test_run_module.clk); while (!vif.a_ready);
+    do @(posedge vif.clk); while (!vif.a_ready);
     vif.a_valid  <= 1'b0;
   endtask
 
@@ -129,7 +131,7 @@ endclass
                .addr('hDEAD));
 
   // Give the monitor one cycle to publish.
-  @(posedge unit_test_run_module.clk);
+  @(posedge vif.clk);
 
   `ASSERT_TRUE(a_fifo.try_get(obs))
   `ASSERT_NOT_NULL(obs)
@@ -156,7 +158,7 @@ endclass
   seq.start(agent.sequencer);
 
   // Let the driver + monitor see the beat.
-  repeat (2) @(posedge unit_test_run_module.clk);
+  repeat (2) @(posedge vif.clk);
 
   `ASSERT_TRUE(b_fifo.try_get(obs))
   `ASSERT_NOT_NULL(obs)

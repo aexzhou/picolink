@@ -7,6 +7,7 @@
 package picolink_pkg;
 
   import uvm_pkg::*;
+  `include "uvm_macros.svh"
 
   `include "transactions/picolink_txn.sv"
   `include "drivers/picolink_l2_slave_driver.sv"

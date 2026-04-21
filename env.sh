@@ -14,10 +14,17 @@ case ":$PATH:" in
     *) export PATH="$PROJ_ROOT/scripts:$PATH" ;;
 esac
 
-# Python deps
-if ! python3 -c "import sphinx_autobuild, sphinx, furo, sphinxcontrib.mermaid" 2>/dev/null; then
+# Python venv for documentation tooling
+_VENV="$PROJ_ROOT/.venv"
+if [[ ! -d "$_VENV" ]]; then
+    echo "[env.sh] Creating Python venv at $_VENV ..."
+    python3 -m venv "$_VENV"
+fi
+source "$_VENV/bin/activate"
+
+if ! python3 -c "import sphinx, sphinxcontrib.mermaid" 2>/dev/null; then
     echo "[env.sh] Installing Python documentation dependencies..."
-    python3 -m pip install --user --quiet -r "$PROJ_ROOT/docs/requirements.txt"
+    python3 -m pip install --quiet -r "$PROJ_ROOT/docs/requirements.txt"
 fi
 
 __show_git_branch() {

@@ -26,6 +26,7 @@ UVM_SRC_EXTERNAL = (ROOT / ".." / "UVM" / "1.2" / "src").resolve()
 UVM_UNIT = ROOT / "lib" / "uvm_unit"
 UVM_UNIT_UVM_SRC = UVM_UNIT / "uvm_unit-uvm-1.2" / "src"
 
+DPI = ROOT / "dpi"
 SRC = ROOT / "src"
 TESTS = ROOT / "tests"
 BUILD = ROOT / "build"
@@ -74,7 +75,8 @@ def build_command(test_files: list[Path], top: str, trace: bool, uvm: Path) -> l
         "-Wno-UNOPTFLAT",
         "-Wno-STMTDLY",
         "-Wno-SHORTREAL",
-        "+define+UVM_NO_DPI",
+        "--vpi",
+        # "+define+UVM_NO_DPI",
         "-j", "24",
         "-Mdir", str(BUILD),
     ]
@@ -82,6 +84,10 @@ def build_command(test_files: list[Path], top: str, trace: bool, uvm: Path) -> l
         cmd += ["--trace"]
     for inc in incdirs(uvm):
         cmd += [f"+incdir+{inc}"]
+    # UVM DPI C implementation (Verilator-compatible)
+    dpi_inc = uvm / "dpi"
+    cmd += ["-CFLAGS", f"-I{dpi_inc}"]
+    cmd += [str(DPI / "uvm_dpi_verilator.cc")]
     cmd += [str(uvm / "uvm_pkg.sv")]
     cmd += [str(f) for f in RTL_FILES]
     cmd += [str(f) for f in test_files]

@@ -11,10 +11,12 @@ interface picolink_l2_slave_if #(
   parameter int DATA_W  = `PICOLINK_DATA_WIDTH,
   parameter int ID_W    = `PICOLINK_ID_WIDTH,
   parameter int TXN_W   = `PICOLINK_TXN_ID_WIDTH
-) (
-  input logic clk,
-  input logic rst_n
 );
+
+  // Plain signals so Verilator properly fires @(posedge) events
+  // when driven via continuous assignment from the parent module.
+  logic clk;
+  logic rst_n;
 
   // A channel (Core -> CM)
   logic             a_valid;
