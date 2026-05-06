@@ -38,7 +38,7 @@ class picolink_scoreboard extends uvm_scoreboard;
     `uvm_info(get_type_name(), {"resp: ", tx.convert2string()}, UVM_MEDIUM)
     if (pending.exists(k)) begin
       pending.delete(k);
-    end else if (picolink_b_opcode_e'(tx.opcode) != PICOLINK_B_INVALIDATE) begin
+    end else if (picolink_opcode_e'(tx.opcode) != Invalidate) begin
       `uvm_warning(get_type_name(),
                    $sformatf("B response with no matching A request: %s",
                              tx.convert2string()))

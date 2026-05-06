@@ -6,24 +6,6 @@ typedef enum bit {
   PICOLINK_CHAN_B = 1'b1  // CM -> Core
 } picolink_chan_e;
 
-// A-channel opcodes (Core -> CM)
-typedef enum bit [3:0] {
-  PICOLINK_A_READ_SHARED    = 4'h0,
-  PICOLINK_A_READ_EXCLUSIVE = 4'h1,
-  PICOLINK_A_UPGRADE        = 4'h2,
-  PICOLINK_A_WRITEBACK      = 4'h3,
-  PICOLINK_A_INVACK         = 4'h4
-} picolink_a_opcode_e;
-
-// B-channel opcodes (CM -> Core)
-typedef enum bit [3:0] {
-  PICOLINK_B_GRANT_S      = 4'h0,
-  PICOLINK_B_GRANT_E      = 4'h1,
-  PICOLINK_B_GRANT_M      = 4'h2,
-  PICOLINK_B_INVALIDATE   = 4'h3,
-  PICOLINK_B_WRITEBACKACK = 4'h4,
-  PICOLINK_B_NACK         = 4'h5
-} picolink_b_opcode_e;
 
 class picolink_txn extends uvm_sequence_item;
 
@@ -37,10 +19,10 @@ class picolink_txn extends uvm_sequence_item;
 
   constraint c_has_data {
     if (channel == PICOLINK_CHAN_A) {
-      has_data == (opcode == PICOLINK_A_WRITEBACK);
+      has_data == (opcode == WriteBack);
     } else {
-      has_data == (opcode == PICOLINK_B_GRANT_S ||
-                   opcode == PICOLINK_B_GRANT_E);
+      has_data == (opcode == GrantS ||
+                   opcode == GrantE);
     }
   }
 
@@ -60,16 +42,16 @@ class picolink_txn extends uvm_sequence_item;
 
   function string convert2string();
     string s;
-    picolink_a_opcode_e a_op;
-    picolink_b_opcode_e b_op;
+    picolink_opcode_e op;
+    
     if (channel == PICOLINK_CHAN_A) begin
-      a_op = picolink_a_opcode_e'(opcode);
+      op = picolink_opcode_e'(opcode);
       s = $sformatf("A[%s] src=%0d txn=%0d addr=0x%0h",
-                    a_op.name(), endpoint_id, txn_id, addr);
+                    op.name(), endpoint_id, txn_id, addr);
     end else begin
-      b_op = picolink_b_opcode_e'(opcode);
+      op = picolink_opcode_e'(opcode);
       s = $sformatf("B[%s] dst=%0d txn=%0d addr=0x%0h",
-                    b_op.name(), endpoint_id, txn_id, addr);
+                    op.name(), endpoint_id, txn_id, addr);
     end
     if (has_data) s = {s, $sformatf(" data=0x%0h", data)};
     return s;

@@ -44,7 +44,7 @@ class picolink_l2_slave_monitor extends uvm_monitor;
         tx.txn_id      = vif.a_txn_id;
         tx.addr        = vif.a_addr;
         tx.data        = vif.a_data;
-        tx.has_data    = (tx.opcode == PICOLINK_A_WRITEBACK);
+        tx.has_data    = (tx.opcode == WriteBack);
         `uvm_info(get_type_name(), {"A: ", tx.convert2string()}, UVM_HIGH)
         a_ap.write(tx);
       end
@@ -63,9 +63,9 @@ class picolink_l2_slave_monitor extends uvm_monitor;
         tx.txn_id      = vif.b_txn_id;
         tx.addr        = vif.b_addr;
         tx.data        = vif.b_data;
-        tx.has_data    = (tx.opcode == PICOLINK_B_GRANT_S ||
-                          tx.opcode == PICOLINK_B_GRANT_E);
-        `uvm_info(get_type_name(), {"B: ", tx.convert2string()}, UVM_HIGH)
+        tx.has_data    = (tx.opcode == GrantS ||
+                          tx.opcode == GrantE);
+        `uvm_info(get_type_name(), {"B: ", tx.convert2string()}, UVM_LOW)
         b_ap.write(tx);
       end
     end

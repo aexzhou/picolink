@@ -125,7 +125,7 @@ endclass
   release_reset();
   accept_b_always();
 
-  drive_a_beat(.op(PICOLINK_A_READ_SHARED),
+  drive_a_beat(.op(ReadShared),
                .src(4'h3),
                .tid(4'h7),
                .addr('hDEAD));
@@ -136,7 +136,7 @@ endclass
   `ASSERT_TRUE(a_fifo.try_get(obs))
   `ASSERT_NOT_NULL(obs)
   `ASSERT_EQ(obs.channel,     PICOLINK_CHAN_A)
-  `ASSERT_EQ(obs.opcode,      PICOLINK_A_READ_SHARED)
+  `ASSERT_EQ(obs.opcode,      ReadShared)
   `ASSERT_EQ(obs.endpoint_id, 4'h3)
   `ASSERT_EQ(obs.txn_id,      4'h7)
   `ASSERT_EQ(obs.addr,        'hDEAD)
@@ -163,7 +163,7 @@ endclass
   `ASSERT_TRUE(b_fifo.try_get(obs))
   `ASSERT_NOT_NULL(obs)
   `ASSERT_EQ(obs.channel,     PICOLINK_CHAN_B)
-  `ASSERT_EQ(obs.opcode,      PICOLINK_B_GRANT_E)
+  `ASSERT_EQ(obs.opcode,      GrantE)
   `ASSERT_EQ(obs.endpoint_id, 4'h2)
   `ASSERT_EQ(obs.txn_id,      4'h5)
   `ASSERT_EQ(obs.addr,        'hBEEF)

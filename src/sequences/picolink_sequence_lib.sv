@@ -1,7 +1,7 @@
-`ifndef PICOLINK_SEQUENCE_BASE_SV
-`define PICOLINK_SEQUENCE_BASE_SV
+`ifndef PICOLINK_SEQUENCE_LIB_SV
+`define PICOLINK_SEQUENCE_LIB_SV
 
-class picolink_sequence_base extends uvm_sequence #(picolink_txn);
+class picolink_sequence extends uvm_sequence #(picolink_txn);
 
   `uvm_object_utils(picolink_sequence_base)
 
@@ -9,6 +9,7 @@ class picolink_sequence_base extends uvm_sequence #(picolink_txn);
     super.new(name);
   endfunction
 
+  // Convenience: send a GrantE (clean line, exclusive) response.
   task send_grant_e(bit [`PICOLINK_ID_WIDTH-1:0]     core_id,
                     bit [`PICOLINK_TXN_ID_WIDTH-1:0] tid,
                     bit [`PICOLINK_ADDR_WIDTH-1:0]   a,
@@ -18,7 +19,7 @@ class picolink_sequence_base extends uvm_sequence #(picolink_txn);
     start_item(tx);
     if (!tx.randomize() with {
       channel     == PICOLINK_CHAN_B;
-      opcode      == GrantE;
+      opcode      == PICOLINK_B_GRANT_E;
       endpoint_id == core_id;
       txn_id      == tid;
       addr        == a;
@@ -29,4 +30,4 @@ class picolink_sequence_base extends uvm_sequence #(picolink_txn);
 
 endclass
 
-`endif // PICOLINK_SEQUENCE_BASE_SV
+`endif // PICOLINK_SEQUENCE_LIB_SV
